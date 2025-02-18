@@ -1,3 +1,21 @@
+### Pineapple route emissions
+#
+# The program below prints the total emissions on the route PAN, AMS, CAS, NY, HEL (in port 
+# indices route 0, 1, 2, 3, 4) in kilograms, which is 504.5 kg. Modify the program so that it prints 
+# out the carbon emissions of all the possible routes. The solution for the previous exercise should 
+# be useful here.
+#
+# Output Example
+# PAN AMS CAS NYC HEL 427.1 kg
+#
+# ...
+#
+# PAN CAS AMS NYC HEL 495.5 kg
+# Tip: Your values might be different, but the formatting should be identical.
+#
+###
+
+
 def calculate_routes():
     # Initialize an empty list to store the routes
     routes = []

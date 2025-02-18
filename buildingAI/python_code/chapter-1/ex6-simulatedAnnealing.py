@@ -1,3 +1,32 @@
+### Simulated Annealing
+#
+# 1D simulated annealing: modify the program below to use simulated annealing instead of plain 
+# hill climbing. In simulated annealing the probability of accepting a solution that lowers the 
+# score is given by prob = exp(-(S_old - S_new)/T). Setting the temperature T and gradually 
+# decreasing can be done in many ways, some of which lead to better outcomes than others. A
+# good choice in this case is for example: T = 2*max(0, ((steps-step*1.2)/steps))**3.
+#
+# Running the code produces something like the following chart, where the black box marks the 
+# starting point. The code below uses the plain hill-climbing strategy to only go up towards a 
+# peak. The solution is marked by a red star. As you can see, the hill-climbing strategy tends to 
+# get stuck in local optima.
+#
+# [see the file '1.3-Exercise 6-Simulate_annealing.svg']
+#
+# Your task is to modify the code to use simulated annealing. Use the cooling schedule for setting 
+# the temperature provided above, and modify the acceptance criterion from only accepting 
+# upward moves to accepting also downward moves with the proper probability. Remember that 
+# in this exercise the score in simulated annealing is the height of a given location on the 
+# mountain. Also note that you will need to handle T=0 case separately, since the acceptance 
+# probability for a worse score should be zero for zero temperature, but the formula used for the 
+# probability will result in division by zero.
+#
+# If plotting the code takes too long, use this gist to plot the code locally on your computer. It 
+# should be significantly faster.
+#
+###
+
+
 import math, random        	# just for generating random mountains                                 	 
 import numpy as np
 
