@@ -1,5 +1,6 @@
 import sys
 import asyncio
+from pydantic import AnyUrl
 from typing import Optional, Any
 from contextlib import AsyncExitStack
 from mcp import ClientSession, StdioServerParameters, types
@@ -45,8 +46,9 @@ class MCPClient:
         return self._session
 
     # async def list_tools(self) -> list[types.Tool]:
-    #     # TODO: Return a list of tools defined by the MCP server
-    #     return []
+    async def list_tools(self) -> list[types.Tool]:
+        result = await self.session().list_tools()
+        return result.tools
 
     # async def call_tool(
     #     self, tool_name: str, tool_input: dict
@@ -65,10 +67,6 @@ class MCPClient:
     # async def read_resource(self, uri: str) -> Any:
     #     # TODO: Read a resource, parse the contents and return it
     #     return []
-
-    async def list_tools(self) -> list[types.Tool]:
-        result = await self.session().list_tools()
-        return result.tools
 
     async def call_tool(
         self, tool_name: str, tool_input
@@ -112,7 +110,8 @@ async def main():
         command="uv",
         args=["run", "mcp_server.py"],
     ) as _client:
-        pass
+        result = await _client.list_tools()
+        print(result)
 
 
 if __name__ == "__main__":
