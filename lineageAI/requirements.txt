@@ -1,0 +1,15 @@
+# Core dependencies
+aiohttp>=3.9.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+
+# LLM Providers
+anthropic>=0.18.0
+
+# EDC Integration
+requests>=2.31.0
+urllib3>=2.0.0
+
+# Optional but recommended
+asyncio>=3.4.3
+configparser>=6.0.0
