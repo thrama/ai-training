@@ -2,11 +2,17 @@
 Configurazioni centrali del progetto EDC-MCP-LLM
 """
 import os
+import sys
 import base64
 from typing import Optional, List
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from pydantic import Field, computed_field
 from enum import Enum
+
+# RIMOSSO: Il codice problematico per Windows UTF-8 encoding
+# Lasciamo che sia run_server.py a gestire l'unbuffering
+
 
 class Environment(str, Enum):
     DEVELOPMENT = "development"
@@ -31,17 +37,23 @@ class Settings(BaseSettings):
     edc_base_url: str = Field(..., description="URL base di EDC")
     edc_username: str = Field(..., description="Username EDC")
     edc_password: str = Field(..., description="Password EDC")
-    edc_api_version: str = Field(default="v2", description="Versione API EDC")
+    edc_api_version: str = Field(default="2", description="Versione API EDC")
     
     # Parametri API EDC
     edc_associations: str = Field(
-        default="core.DataSetDataElement,core.DirectionalDataFlow,core.DataFlowDataElement",
-        description="Associations da includere"
+        default="core.DataSetDataFlow,core.DirectionalDataFlow",
+        description="Associations da includere (solo quelle valide)"
     )
-    edc_include_dst_links: bool = Field(default=False)
-    edc_include_ref_objects: bool = Field(default=False)
+    edc_include_dst_links: bool = Field(
+        default=True,
+        description="Include destination links"
+    )
+    edc_include_ref_objects: bool = Field(
+        default=True,
+        description="Include reference objects"
+    )
     edc_include_src_links: bool = Field(default=True)
-    edc_page_size: int = Field(default=500)
+    edc_page_size: int = Field(default=20)
     edc_offset: int = Field(default=0)
     
     # Performance EDC
@@ -54,7 +66,7 @@ class Settings(BaseSettings):
     # ========================================
     # LLM Configuration
     # ========================================
-    default_llm_provider: LLMProvider = Field(default=LLMProvider.TINYLLAMA)
+    default_llm_provider: LLMProvider = Field(default=LLMProvider.CLAUDE)
     
     # Claude
     claude_api_key: Optional[str] = Field(default=None)
@@ -84,7 +96,7 @@ class Settings(BaseSettings):
     log_format: str = Field(default="json")
     
     class Config:
-        env_file = ".env"
+        env_file = str(Path(__file__).parent.parent.parent / ".env")
         case_sensitive = False
         extra = "ignore"
     
@@ -103,9 +115,10 @@ class Settings(BaseSettings):
     @computed_field
     @property
     def edc_browse_url(self) -> str:
-        """URL completo per API catalog/data/objects (formato Allitude)"""
-        # Allitude usa: /2/catalog/data/objects
-        # Non: /api/v2/browse
+        """
+        URL completo per API catalog/data/objects (formato Allitude)
+        Esempio: https://edc.collaudo.servizi.allitude.it:9086/access/2/catalog/data/objects
+        """
         return f"{self.edc_base_url}/{self.edc_api_version}/catalog/data/objects"
     
     @computed_field
@@ -156,9 +169,19 @@ class Settings(BaseSettings):
 # Singleton settings instance
 try:
     settings = Settings()
+    
+    # Debug: stampa se ha caricato correttamente
+    if "example.com" in settings.edc_base_url:
+        print(f"[WARNING] Settings using fallback config!")
+        print(f"   .env file not found or not loaded")
+        print(f"   Looking for: {Path(__file__).parent.parent.parent / '.env'}")
+    else:
+        print(f"[OK] Settings loaded successfully from .env")
+        print(f"   EDC URL: {settings.edc_base_url}")
+        
 except Exception as e:
-    print(f"⚠️  Warning: Could not load settings from .env: {e}")
-    print("Using default settings...")
+    print(f"[WARNING] Could not load settings from .env: {e}")
+    print("   Using default settings...")
     settings = Settings(
         edc_base_url="https://example.com/ldm",
         edc_username="user",

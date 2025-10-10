@@ -2,14 +2,19 @@
 aiohttp>=3.9.0
 python-dotenv>=1.0.0
 pydantic>=2.0.0
+pydantic-settings>=2.0.0
 
 # LLM Providers
-anthropic>=0.18.0
+anthropic>=0.40.0
 
 # EDC Integration
 requests>=2.31.0
 urllib3>=2.0.0
 
+# MCP Server (con versioni specifiche)
+mcp>=1.0.0
+anyio>=4.0.0,<5.0.0
+httpx>=0.27.0
+
 # Optional but recommended
-asyncio>=3.4.3
 configparser>=6.0.0

@@ -173,9 +173,139 @@ class EDCClient:
         
         return valid_links
 
+    async def bulk_search_assets(
+        self, 
+        resource_name: str,
+        name_filter: Optional[str] = None,
+        asset_type_filter: Optional[str] = None
+    ) -> List[Dict]:
+        """
+        Cerca assets usando l'API bulk di Allitude EDC.
+        FIXED: 
+        1. Usa GET invece di POST
+        2. Parse CSV invece di JSON
+        """
+        await self._ensure_session()
+        
+        # URL API Bulk
+        bulk_url = f"{settings.edc_base_url}/1/catalog/data/bulk"
+        
+        # Parametri
+        params = {
+            'resourceName': resource_name,
+            'classTypes': 'com.infa.ldm.relational.Table',
+            'facts': 'id,core.name,core.classType',
+            'includeRefObjects': 'true'
+        }
+        
+        # Sovrascrivi classTypes se specificato
+        if asset_type_filter:
+            if '.' not in asset_type_filter:
+                class_mapping = {
+                    'table': 'com.infa.ldm.relational.Table',
+                    'view': 'com.infa.ldm.relational.ViewTable',
+                    'column': 'com.infa.ldm.relational.Column',
+                    'viewcolumn': 'com.infa.ldm.relational.ViewColumn'
+                }
+                params['classTypes'] = class_mapping.get(
+                    asset_type_filter.lower(), 
+                    'com.infa.ldm.relational.Table'
+                )
+            else:
+                params['classTypes'] = asset_type_filter
+        
+        # Headers
+        bulk_headers = {
+            **self.headers,
+            'Accept': 'text/csv, application/json, */*',
+            'Connection': 'keep-alive'
+        }
+        
+        self.logger.info(f"Bulk search: {params}")
+        self._stats['total_requests'] += 1
+        
+        try:
+            # FIX 1: Usa GET invece di POST
+            async with self.session.get(
+                bulk_url, 
+                params=params,
+                headers=bulk_headers
+            ) as response:
+                
+                self.logger.info(f"Response status: {response.status}")
+                content_type = response.headers.get('Content-Type', '')
+                self.logger.info(f"Response Content-Type: {content_type}")
+                
+                if response.status != 200:
+                    error_text = await response.text()
+                    self.logger.error(f"API error {response.status}: {error_text[:500]}")
+                    response.raise_for_status()
+                
+                # FIX 2: Leggi come testo (CSV)
+                csv_text = await response.text()
+                self.logger.info(f"Received {len(csv_text)} characters")
+                
+                # FIX 3: Parse CSV invece di JSON
+                import csv
+                from io import StringIO
+                
+                csv_reader = csv.DictReader(StringIO(csv_text))
+                items = list(csv_reader)
+                
+                self.logger.info(f"Parsed {len(items)} items from CSV")
+                
+                if items:
+                    self.logger.debug(f"CSV columns: {list(items[0].keys())}")
+                
+                # Filtraggio e arricchimento
+                filtered_items = []
+                
+                for item in items:
+                    asset_id = item.get('id', '')
+                    
+                    # Estrai nome dai campi CSV
+                    name = (
+                        item.get('core.name') or 
+                        item.get('name') or 
+                        asset_id.split('/')[-1] if '/' in asset_id else asset_id
+                    )
+                    
+                    # Estrai classType
+                    class_type = (
+                        item.get('core.classType') or 
+                        item.get('classType') or 
+                        'Unknown'
+                    )
+                    
+                    # Filtro nome (case-insensitive)
+                    if name_filter and name_filter.upper() not in name.upper():
+                        continue
+                    
+                    # Arricchisci item
+                    enriched_item = {
+                        'id': asset_id,
+                        'name': name,
+                        'classType': class_type,
+                        **item  # Include tutti i campi CSV originali
+                    }
+                    
+                    filtered_items.append(enriched_item)
+                
+                self.logger.info(f"Filtered to {len(filtered_items)} items")
+                
+                return filtered_items
+                
+        except Exception as e:
+            self._stats['api_errors'] += 1
+            self.logger.error(f"Bulk search error: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
+            raise
+
     async def get_asset_details(self, asset_id: str) -> Dict[str, Any]:
         """
-        Recupera i dettagli completi di un asset.
+        Recupera i dettagli completi di un asset specifico.
+        Usa l'API objects per un singolo asset conosciuto.
         Versione robusta per Allitude EDC con gestione di risposte incomplete.
         
         Args:
@@ -196,7 +326,7 @@ class EDCClient:
         
         # Costruisci parametri query
         params = dict(self.static_params)
-        params['q'] = f'id:{asset_id}'
+        params.append(('q', f'id:{asset_id}'))
         
         # Log per debug
         self.logger.info(f"Fetching asset: {asset_id}")
@@ -290,7 +420,9 @@ class EDCClient:
         filters: Optional[Dict] = None
     ) -> List[Dict]:
         """
-        Cerca assets nel catalogo EDC.
+        Cerca assets nel catalogo EDC usando query diretta.
+        NOTA: Questo metodo usa l'API objects con query, non bulk.
+        Per ricerche generiche in una risorsa, usa bulk_search_assets().
         
         Args:
             query: Query di ricerca (es. "*", "*GARANZIE*", "name:CUSTOMER*")
@@ -302,10 +434,11 @@ class EDCClient:
         await self._ensure_session()
         
         params = dict(self.static_params)
-        params['q'] = query
+        params.append(('q', query))
         
         if filters:
-            params.update(filters)
+            for key, value in filters.items():
+                params.append((key, value))
         
         self.logger.info(f"Searching assets with query: {query}")
         

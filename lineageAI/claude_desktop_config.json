@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "edc-lineage": {
+      "command": "C:\\Dev\\ai-training\\lineageAI\\venv\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "src.mcp.server"
+      ],
+      "cwd": "C:\\Dev\\ai-training\\lineageAI"
+    }
+  }
+}
