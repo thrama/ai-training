@@ -203,7 +203,7 @@ class EDCClient:
             if '.' not in asset_type_filter:
                 class_mapping = {
                     'table': 'com.infa.ldm.relational.Table',
-                    'view': 'com.infa.ldm.relational.ViewTable',
+                    'view': 'com.infa.ldm.relational.View',
                     'column': 'com.infa.ldm.relational.Column',
                     'viewcolumn': 'com.infa.ldm.relational.ViewColumn'
                 }

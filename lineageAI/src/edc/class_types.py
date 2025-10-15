@@ -14,8 +14,8 @@ class EDCClassType(str, Enum):
     VIEW_COLUMN = "com.infa.ldm.relational.ViewColumn"
     TABLE = "com.infa.ldm.relational.Table"
     VIEW = "com.infa.ldm.relational.View"
-    SCHEMA = "com.infa.ldm.relational.Schema"
-    DATABASE = "com.infa.ldm.relational.Database"
+    SCHEMA = "com.infa.ldm.relational.DatabaseSchema"
+    DATABASE = "com.infa.ldm.relational.DatabaseServer"
     
     # Altri tipi comuni (estendibile)
     PRIMARY_KEY = "com.infa.ldm.relational.PrimaryKey"
