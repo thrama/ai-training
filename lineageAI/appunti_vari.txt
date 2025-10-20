@@ -1,0 +1,36 @@
+192.168.1.17	https://edc.servizi.allitude.it:9086/ldmcatalog/main/ldmObjectView/(%27$obj%27:%27DataPlatform:___ORAP51/DATALAYER/COMVW_RISCHIODIRETTOTOTALE_GRUPPOCCB%27,%27$type%27:com.infa.ldm.relational.View,%27$where%27:ldm.NewLineageView,facet:!n,isRedirectFromOverView:false,page:1,rows:20,search:comvw_rischiodirettototale_gruppoccb,tabId:all)
+
+
+
+https://edc.servizi.allitude.it:9086/ldmcatalog/main/ldmObjectView/(%27$obj%27:%27DataPlatform:___ORAP51/DATAMARTIFRS9/IFR_GARANZIE%27,%27$type%27:com.infa.ldm.relational.View,%27$where%27:ldm.NewLineageView,facet:!n,isRedirectFromOverView:false,page:1,rows:20,search:comvw_rischiodirettototale_gruppoccb,tabId:all)
+
+Test 1 - Verifica Tools Disponibili
+Quali tools MCP hai a disposizione? Elenca i nomi.
+Test 2 - Cerca Asset
+Usa search_assets per cercare asset con "GARANZIE" nel nome
+Test 3 - Asset Details
+Usa get_asset_details per questo asset:
+DataPlatform://ORAC51/DWHEVO/IFR_WK_GARANZIE_SOFFERENZE_DT_AP
+Test 4 - Lineage
+Usa get_immediate_lineage per vedere il lineage upstream dell'asset:
+DataPlatform://ORAC51/DWHEVO/IFR_WK_GARANZIE_SOFFERENZE_DT_AP
+
+
+Cerca le tabelle EDC che contengono "RAPPORTO" nel nome per la risorsa DataPlatform
+
+
+curl --location --request GET "https://edc.collaudo.servizi.allitude.it:9086/access/1/catalog/data/bulk?resourceName=DataPlatform&classTypes=com.infa.ldm.relational.Table&facts=id,core.name,core.classType&includeRefObjects=true" --header "Authorization: Basic QWRtaW5pc3RyYXRvcjpSVjQyOUtXOVZSK2g=" --insecure
+
+https://edc.collaudo.servizi.allitude.it:9086/access/1/catalog/data/bulk?resourceName=DataPlatform&classTypes=com.infa.ldm.relational.Table&facts=id,core.name,core.classType&includeRefObjects=true
+https://edc.collaudo.servizi.allitude.it:9086/access/1/catalog/data/bulk?resourceName=DataPlatform&classTypes=com.infa.ldm.relational.Table&facts=id,core.name,core.classType&includeRefObjects=true
+
+
+curl --location --request GET "https://edc.collaudo.servizi.allitude.it:9086/access/1/catalog/data/bulk?resourceName=DataPlatform&facts=id,core.name,core.classType,core.description&includeRefObjects=true" --header "Authorization: Basic QWRtaW5pc3RyYXRvcjpSVjQyOUtXOVZSK2g=" --insecure
+
+
+Errore ricerca bulk: 400, message='', url='https://edc.collaudo.servizi.allitude.it:9086/access/1/catalog/data/bulk?resourceName=DataPlatform&facts=id,core.name,core.classType&includeRefObjects=true'
+
+
+
+fix repository folders for DataObservability script
+EdcLineageExtractor_DtObs_New
