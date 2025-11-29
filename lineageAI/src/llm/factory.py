@@ -8,9 +8,10 @@ from typing import Optional
 from .base import BaseLLMClient
 from .tinyllama import TinyLlamaClient
 from .claude import ClaudeClient
+from .gemma3 import Gemma3Client
 
 # IMPORTA da settings invece di ridefinirlo
-from ..config.settings import LLMProvider  # ← CAMBIA QUESTA RIGA
+from ..config.settings import LLMProvider
 
 
 @dataclass
@@ -38,12 +39,14 @@ class LLMFactory:
             BaseLLMClient: Client LLM configurato
             
         Raises:
-            ValueError: Se il provider non è supportato
+            ValueError: Se il provider non e supportato
         """
         if config.provider == LLMProvider.TINYLLAMA:
             return TinyLlamaClient(config)
         elif config.provider == LLMProvider.CLAUDE:
             return ClaudeClient(config)
+        elif config.provider == LLMProvider.GEMMA3:
+            return Gemma3Client(config)
         else:
             raise ValueError(f"Provider LLM non supportato: {config.provider}")
     
@@ -66,6 +69,8 @@ class LLMFactory:
         if config.provider == LLMProvider.CLAUDE:
             return config.api_key is not None
         elif config.provider == LLMProvider.TINYLLAMA:
+            return config.base_url is not None
+        elif config.provider == LLMProvider.GEMMA3:
             return config.base_url is not None
         
         return False

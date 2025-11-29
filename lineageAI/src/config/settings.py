@@ -10,9 +10,6 @@ from pydantic_settings import BaseSettings
 from pydantic import Field, computed_field
 from enum import Enum
 
-# RIMOSSO: Il codice problematico per Windows UTF-8 encoding
-# Lasciamo che sia run_server.py a gestire l'unbuffering
-
 
 class Environment(str, Enum):
     DEVELOPMENT = "development"
@@ -23,6 +20,7 @@ class LLMProvider(str, Enum):
     """Provider LLM supportati."""
     TINYLLAMA = "tinyllama"
     CLAUDE = "claude"
+    GEMMA3 = "gemma3"
 
 class Settings(BaseSettings):
     """Configurazioni principali dell'applicazione"""
@@ -79,6 +77,11 @@ class Settings(BaseSettings):
     tinyllama_model: str = Field(default="tinyllama")
     tinyllama_max_tokens: int = Field(default=2000)
     tinyllama_temperature: float = Field(default=0.1)
+    
+    # Gemma3/Ollama
+    gemma3_model: str = Field(default="gemma3:4b")
+    gemma3_max_tokens: int = Field(default=4000)
+    gemma3_temperature: float = Field(default=0.1)
     
     # ========================================
     # MCP Server
@@ -138,7 +141,7 @@ class Settings(BaseSettings):
         }
     
     def get_edc_static_params(self) -> list:
-        """Parametri statici per API EDC (compatibilità TreeBuilder)"""
+        """Parametri statici per API EDC (compatibilita TreeBuilder)"""
         params = []
         for assoc in self.edc_associations_list:
             params.append(('associations', assoc))
@@ -154,11 +157,11 @@ class Settings(BaseSettings):
         return params
     
     def is_claude_available(self) -> bool:
-        """Verifica se Claude è configurato"""
+        """Verifica se Claude e configurato"""
         return self.claude_api_key is not None and len(self.claude_api_key) > 10
     
     def is_ollama_available(self) -> bool:
-        """Verifica se Ollama è disponibile"""
+        """Verifica se Ollama e disponibile"""
         try:
             import requests
             response = requests.get(f"{self.ollama_base_url}/api/tags", timeout=5)

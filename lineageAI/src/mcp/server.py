@@ -78,6 +78,17 @@ class EDCMCPServer:
                 )
                 print(f"[MCP] Config: model={llm_config.model_name}, url={llm_config.base_url}", file=sys.stderr)
                 
+            elif self.current_llm_provider == LLMProvider.GEMMA3:
+                print("[MCP] Configurazione Gemma3...", file=sys.stderr)
+                llm_config = LLMConfig(
+                    provider=LLMProvider.GEMMA3,
+                    model_name=settings.gemma3_model,
+                    base_url=settings.ollama_base_url,
+                    max_tokens=settings.gemma3_max_tokens,
+                    temperature=settings.gemma3_temperature
+                )
+                print(f"[MCP] Config: model={llm_config.model_name}, url={llm_config.base_url}", file=sys.stderr)
+                
             elif self.current_llm_provider == LLMProvider.CLAUDE:
                 print("[MCP] Configurazione Claude...", file=sys.stderr)
                 
@@ -747,10 +758,12 @@ class EDCMCPServer:
                 new_provider = LLMProvider.TINYLLAMA
             elif provider.lower() == "claude":
                 new_provider = LLMProvider.CLAUDE
+            elif provider.lower() == "gemma3":
+                new_provider = LLMProvider.GEMMA3
             else:
                 return [TextContent(
                     type="text", 
-                    text=f"Provider non supportato: {provider}. Usa 'tinyllama' o 'claude'"
+                    text=f"Provider non supportato: {provider}. Usa 'tinyllama', 'claude' o 'gemma3'"
                 )]
             
             if new_provider == self.current_llm_provider:
