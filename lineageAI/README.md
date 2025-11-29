@@ -1,528 +1,498 @@
-# README - EDC-MCP-LLM Integration
+# EDC-MCP-LLM Integration
 
-## Cos'è questo progetto? (Spiegazione semplice)
+**Enterprise Data Catalog meets AI-powered Data Governance**
 
-Immagina di avere una grande biblioteca piena di libri (i tuoi dati aziendali). Ogni libro è collegato ad altri libri attraverso riferimenti e citazioni. Questo progetto è come avere un bibliotecario intelligente che:
+Sistema intelligente per l'esplorazione e l'analisi del lineage dati attraverso conversazioni naturali con Claude Desktop, integrando Informatica EDC con Large Language Models.
 
-1. **Sa dove sono tutti i libri** (Informatica EDC - il catalogo)
-2. **Capisce come sono collegati tra loro** (Lineage - le relazioni)
-3. **Può spiegarti tutto in modo semplice** (LLM - l'intelligenza artificiale)
-4. **Risponde alle tue domande** (MCP - il sistema di comunicazione)
+---
 
-## I Tre Componenti Principali
+## 🎯 Cos'è
 
+Un server MCP (Model Context Protocol) che espone le funzionalità di Informatica Enterprise Data Catalog attraverso Claude Desktop, arricchendole con analisi AI per:
+
+- **Ricercare** asset nel catalogo tramite linguaggio naturale
+- **Esplorare** lineage upstream/downstream con alberi di dipendenze
+- **Analizzare** l'impatto di modifiche su tabelle e colonne
+- **Generare** checklist operative per change management
+- **Arricchire** automaticamente la documentazione tecnica
+
+**Esempio:**
+> "Cerca tutte le tabelle con GARANZIE nel nome e mostrami il lineage upstream della prima"
+
+Claude Desktop usa i tools MCP per interrogare EDC e rispondere con analisi dettagliate.
+
+---
+
+## 🏗️ Architettura
 ```
-┌─────────────────┐
-│   TU CHIEDI     │
-│  "Dove usano    │
-│   questa        │
-│   tabella?"     │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│   MCP SERVER    │ ◄─── Il "centralino" che smista le richieste
-│  (server.py)    │
-└────────┬────────┘
-         │
-    ┌────┴────┐
-    │         │
-    ▼         ▼
-┌─────────┐ ┌─────────┐
-│   EDC   │ │   LLM   │
-│ Catalogo│ │  AI     │
-└─────────┘ └─────────┘
-    │         │
-    └────┬────┘
-         ▼
-    RISPOSTA COMPLETA
-```
-
-## Struttura dei File - Cosa Fa Ogni Cosa
-
-### 📁 File di Configurazione (Quelli che devi modificare)
-
-#### `.env` - Il File delle Credenziali
-Contiene le password e le configurazioni segrete. È come il portachiavi:
-
-```env
-# Dove si trova il catalogo EDC
-EDC_BASE_URL=https://edc.tuaazienda.it:9086/access
-
-# Username e password per accedere
-EDC_USERNAME=Administrator
-EDC_PASSWORD=la_tua_password_segreta
-
-# Chiave per usare Claude AI (opzionale)
-CLAUDE_API_KEY=sk-ant-api03-xxxx...
+Claude Desktop (UI)
+    ↓ stdio (MCP protocol)
+MCP Server (src/mcp/server.py)
+    ↓
+┌─────────────────┴──────────────────┐
+│                                     │
+EDC Client                       LLM Factory
+(src/edc/)                       (src/llm/)
+    ↓                                 ↓
+Informatica EDC              TinyLlama │ Claude │ Gemma3
+(API REST)                   (via Ollama)  (API)  (via Ollama)
 ```
 
-**Cosa modificare:**
-- `EDC_BASE_URL`: L'indirizzo del tuo server EDC
-- `EDC_USERNAME`: Il tuo nome utente
-- `EDC_PASSWORD`: La tua password
-- `CLAUDE_API_KEY`: Se vuoi usare Claude invece di TinyLlama
+### Componenti Principali
 
-#### `config.ini` - Le Impostazioni Avanzate
-Contiene parametri tecnici. Normalmente non serve modificarlo.
+**EDC Integration** (`src/edc/`)
+- `client.py` - Client HTTP per API EDC bulk/objects
+- `lineage.py` - Costruzione alberi lineage (evoluzione TreeBuilder)
+- `models.py` - Data models (TreeNode, ImpactAnalysis, etc.)
+- `class_types.py` - Mappatura tipi asset EDC
 
-### 📁 Codice Sorgente (`src/`)
+**LLM Integration** (`src/llm/`)
+- `base.py` - Interfaccia astratta per LLM
+- `factory.py` - Factory pattern per istanziare provider
+- `tinyllama.py` - Client Ollama (locale, veloce)
+- `gemma3.py` - Client Gemma3 4B (bilanciato, default)
+- `claude.py` - Client Anthropic API (potente, cloud)
 
-#### `src/config/settings.py` - Il Centro di Controllo
-Legge tutti i file di configurazione e li organizza. È come il cruscotto di un'auto che mostra tutte le spie.
+**MCP Server** (`src/mcp/`)
+- `server.py` - Espone 10+ tools per Claude Desktop
 
-**Cosa fa:**
-- Legge il file `.env`
-- Prepara le credenziali per EDC
-- Configura quale AI usare (TinyLlama o Claude)
-- Imposta limiti e timeout
+**Configuration** (`src/config/`)
+- `settings.py` - Gestione centralizzata configurazione da `.env`
 
-#### `src/edc/` - La Parte che Parla con EDC
+---
 
-**`client.py`** - Il Messaggero
-- Si connette al server EDC
-- Chiede informazioni sugli asset (tabelle, colonne, etc.)
-- Gestisce la cache per andare più veloce
-- Conta quante chiamate fa (statistiche)
+## 📋 Prerequisiti
 
-```python
-# Esempio di cosa fa:
-# 1. "Dammi info sulla tabella CLIENTI"
-# 2. Controlla se ce l'ha già in memoria (cache)
-# 3. Se no, chiama EDC
-# 4. Salva la risposta per la prossima volta
-```
+### Software
+- **Python 3.9+**
+- **Claude Desktop** (per interfaccia MCP)
+- **Ollama** (opzionale, per TinyLlama/Gemma3 locale)
 
-**`lineage.py`** - Il Costruttore di Alberi
-- Costruisce "l'albero genealogico" dei dati
-- Parte da una tabella e trova tutte le tabelle "genitori"
-- Si ferma ai livelli che gli dici tu (max_depth)
-- Evita di girare in cerchio (prevenzione cicli)
+### Accesso
+- Credenziali EDC (username/password)
+- Claude API key (opzionale, se usi provider Claude)
+- VPN/rete aziendale (se EDC è interno)
 
-```
-Esempio di albero:
-TABELLA_FINALE
-    ├── TABELLA_INTERMEDIA_1
-    │   ├── TABELLA_SORGENTE_A
-    │   └── TABELLA_SORGENTE_B
-    └── TABELLA_INTERMEDIA_2
-        └── TABELLA_SORGENTE_C
-```
+---
 
-**`models.py`** - Le Strutture Dati
-Definisce come sono fatti gli oggetti (come i "mattoncini Lego" del progetto):
-- `TreeNode`: Un nodo dell'albero
-- `ImpactAnalysisRequest`: Una richiesta di analisi impatto
-- Altri modelli dati
+## 🚀 Installazione
 
-**`class_types.py`** - Il Traduttore di Tipi
-Capisce cosa vuoi cercare quando parli in linguaggio naturale:
-
-```python
-# Tu dici: "mostrami le tabelle"
-# Lui traduce in: "com.infa.ldm.relational.Table"
-
-# Tu dici: "tutte le colonne"
-# Lui traduce in: "com.infa.ldm.relational.Column"
-```
-
-#### `src/llm/` - La Parte dell'Intelligenza Artificiale
-
-**`base.py`** - Il Contratto Base
-Definisce cosa DEVE fare ogni AI, come un "contratto":
-- Arricchire le descrizioni
-- Analizzare la complessità
-- Suggerire azioni da fare
-
-**`tinyllama.py`** - L'AI Locale (Gratis)
-- Si connette a Ollama sul tuo computer
-- Veloce ma meno precisa
-- Non servono API key
-- Buona per sviluppo e test
-
-**`claude.py`** - L'AI Cloud (A Pagamento)
-- Si connette ai server di Anthropic
-- Molto precisa e intelligente
-- Serve API key
-- Costa in base all'uso
-
-**`factory.py`** - Il Selettore di AI
-Decide quale AI usare in base alla configurazione. È come un interruttore:
-
-```python
-if config.provider == "tinyllama":
-    return TinyLlamaClient()
-elif config.provider == "claude":
-    return ClaudeClient()
-```
-
-#### `src/mcp/server.py` - Il Cervello del Progetto
-
-Questo è il file più importante! Coordina tutto.
-
-**Cosa fa:**
-1. **Registra i "tools"** (le funzioni disponibili)
-2. **Riceve richieste** da Claude Desktop
-3. **Chiama EDC** per i dati
-4. **Chiama l'AI** per arricchire le risposte
-5. **Ritorna il risultato**
-
-**I Tools Disponibili** (le cose che puoi chiedere):
-
-1. **`get_asset_details`** - "Dimmi tutto su questa tabella"
-   ```
-   Input: ID della tabella
-   Output: Nome, tipo, descrizione arricchita, collegamenti
-   ```
-
-2. **`search_assets`** - "Cerca tabelle che contengono CLIENTE"
-   ```
-   Input: Parola da cercare, tipo di oggetto
-   Output: Lista di asset trovati
-   ```
-
-3. **`get_lineage_tree`** - "Costruisci l'albero completo"
-   ```
-   Input: Tabella di partenza, profondità
-   Output: Albero con tutte le dipendenze
-   ```
-
-4. **`get_immediate_lineage`** - "Da dove viene? Dove va?"
-   ```
-   Input: Tabella
-   Output: Lista diretta upstream/downstream
-   ```
-
-5. **`analyze_change_impact`** - "Se cambio questo, cosa succede?"
-   ```
-   Input: Tabella, tipo di modifica
-   Output: Rischio, impatti, raccomandazioni
-   ```
-
-6. **`generate_change_checklist`** - "Cosa devo fare step-by-step?"
-   ```
-   Input: Modifica da fare
-   Output: Checklist operativa completa
-   ```
-
-7. **`enhance_asset_documentation`** - "Arricchisci la documentazione"
-   ```
-   Input: Asset
-   Output: Descrizione migliorata, tag, regole qualità
-   ```
-
-8. **`switch_llm_provider`** - "Cambia AI"
-   ```
-   Input: tinyllama o claude
-   Output: Conferma cambio
-   ```
-
-9. **`get_llm_status`** - "Che AI stai usando?"
-   ```
-   Output: Provider attivo, disponibilità
-   ```
-
-10. **`get_system_statistics`** - "Dammi le statistiche"
-    ```
-    Output: Chiamate fatte, cache, errori
-    ```
-
-### 📁 File di Test
-
-Tutti i file `test_*.py` servono per verificare che tutto funzioni:
-
-- **`test_llm_simple.py`** - Verifica che le AI rispondano
-- **`test_mcp_integration.py`** - Testa tutti i tools MCP
-- **`test_complete_integration.py`** - Test end-to-end completo
-- **`test_edc_llm_integration.py`** - Test integrazione EDC+LLM
-- **`test_search_flow.py`** - Traccia tutto il flusso di una ricerca
-
-## Come Funziona - Flusso Completo
-
-Ecco cosa succede quando chiedi qualcosa:
-
-```
-1. TU SCRIVI IN CLAUDE DESKTOP:
-   "Cerca le tabelle che contengono GARANZIE"
-
-2. CLAUDE DESKTOP:
-   - Vede che hai chiesto una ricerca
-   - Chiama il tool MCP "search_assets"
-   - Parametri: resource_name="DataPlatform", name_filter="GARANZIE"
-
-3. MCP SERVER (server.py):
-   - Riceve la chiamata a "search_assets"
-   - Smista a: _handle_search_assets()
-   
-4. EDC CLIENT (client.py):
-   - Prepara chiamata API bulk EDC
-   - URL: https://edc.../1/catalog/data/bulk
-   - Parametri: resourceName=DataPlatform, etc.
-   - Chiama l'API EDC
-
-5. EDC (IL CATALOGO):
-   - Cerca nel database
-   - Trova tutte le tabelle
-   - Ritorna CSV con i risultati
-
-6. EDC CLIENT:
-   - Legge il CSV
-   - Filtra per "GARANZIE" nel nome
-   - Arricchisce i dati
-
-7. MCP SERVER:
-   - Riceve i risultati
-   - Opzionalmente chiama l'AI per arricchire
-   - Formatta la risposta
-
-8. CLAUDE DESKTOP:
-   - Riceve la risposta formattata
-   - Te la mostra in modo leggibile
-
-9. TU LEGGI:
-   "Trovate 5 tabelle con GARANZIE nel nome:
-    1. IFR_WK_GARANZIE_DT
-    2. GARANZIE_SOFFERENZE
-    ..."
-```
-
-## Installazione - Passo Passo
-
-### 1. Prerequisiti
-
+### 1. Clone e Setup
 ```bash
-# Hai bisogno di:
-- Python 3.9 o superiore
-- Accesso a un server Informatica EDC
-- (Opzionale) Claude API key
-- (Opzionale) Ollama per TinyLlama locale
-```
-
-### 2. Installazione Base
-
-```bash
-# Clona o scarica il progetto
 cd lineageAI
 
-# Crea ambiente virtuale
+# Virtual environment
 python -m venv venv
+venv\Scripts\activate  # Windows
+# source venv/bin/activate  # Linux/Mac
 
-# Attiva ambiente
-# Su Windows:
-venv\Scripts\activate
-# Su Linux/Mac:
-source venv/bin/activate
-
-# Installa dipendenze
+# Dipendenze
 pip install -r requirements.txt
 ```
 
-### 3. Configurazione
+### 2. Configurazione
 
+**Crea `.env` dalla template:**
 ```bash
-# Copia e modifica .env
 cp .env.example .env
-# Apri .env con un editor e inserisci le TUE credenziali
-
-# Il file config.ini va bene così com'è (di solito)
 ```
 
-### 4. Test di Verifica
+**Modifica `.env` con i tuoi dati:**
+```ini
+# EDC Configuration
+EDC_BASE_URL=https://edc.collaudo.servizi.allitude.it:9086/access
+EDC_USERNAME=Administrator
+EDC_PASSWORD=your_password_here
 
+# LLM Provider (tinyllama, claude, gemma3)
+DEFAULT_LLM_PROVIDER=gemma3
+
+# TinyLlama/Gemma3 (via Ollama locale)
+OLLAMA_BASE_URL=http://localhost:11434
+TINYLLAMA_MODEL=tinyllama
+GEMMA3_MODEL=gemma3:4b
+
+# Claude (opzionale)
+CLAUDE_API_KEY=sk-ant-api03-xxxxx
+CLAUDE_MODEL=claude-sonnet-4-20250514
+```
+
+### 3. Test Connessione
 ```bash
-# Test semplice LLM
-python test_llm_simple.py
+# Verifica settings
+python -c "from src.config.settings import settings; print(f'EDC: {settings.edc_base_url}')"
 
-# Se funziona, prova il test completo
-python test_mcp_integration.py
+# Test EDC client
+python -c "import asyncio; from src.edc.client import EDCClient; asyncio.run(EDCClient().get_asset_details('DataPlatform://ORAC51/DWHEVO/test'))"
 ```
 
-### 5. Configurazione Claude Desktop
+### 4. Configurazione Claude Desktop
 
-Modifica il file di configurazione di Claude Desktop:
-
-**Windows:**
-`%APPDATA%\Claude\claude_desktop_config.json`
-
-**Mac:**
-`~/Library/Application Support/Claude/claude_desktop_config.json`
-
-**Linux:**
-`~/.config/Claude/claude_desktop_config.json`
-
-Contenuto:
+**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+**Mac:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Linux:** `~/.config/Claude/claude_desktop_config.json`
 ```json
 {
   "mcpServers": {
     "edc-lineage": {
-      "command": "C:\\path\\to\\your\\venv\\Scripts\\python.exe",
+      "command": "C:\\Dev\\ai-training\\lineageAI\\venv\\Scripts\\python.exe",
       "args": ["-m", "src.mcp.server"],
-      "cwd": "C:\\path\\to\\lineageAI"
+      "cwd": "C:\\Dev\\ai-training\\lineageAI"
     }
   }
 }
 ```
 
-**IMPORTANTE:** Sostituisci i path con i TUOI path reali!
+**⚠️ Importante:** Sostituisci i path con quelli corretti del tuo sistema!
 
-### 6. Avvio
+### 5. Avvio
 
-```bash
-# Riavvia Claude Desktop
-# Dovresti vedere l'icona del martelletto
-# Se clicchi vedrai il tool "edc-lineage"
+1. Riavvia Claude Desktop
+2. Verifica icona 🔨 in basso (tools disponibili)
+3. Clicca per vedere "edc-lineage" tra i server MCP attivi
+
+---
+
+## 🛠️ Tools MCP Disponibili
+
+Il sistema espone 10 tools per Claude Desktop:
+
+### 1. **search_assets**
+Cerca asset nel catalogo EDC.
+```
+Parametri:
+- resource_name: string (obbligatorio, es: "DataPlatform")
+- name_filter: string (opzionale, es: "GARANZIE")
+- asset_type: string (opzionale, es: "Table", "View")
+- max_results: integer (default: 10)
 ```
 
-## Esempi di Uso Pratico
+### 2. **get_asset_details**
+Recupera dettagli completi di un asset con enhancement AI.
+```
+Parametri:
+- asset_id: string (es: "DataPlatform://ORAC51/DWHEVO/TABLE_NAME")
+```
 
-### Esempio 1: Cercare una Tabella
+### 3. **get_lineage_tree**
+Costruisce albero lineage completo con analisi AI.
+```
+Parametri:
+- asset_id: string
+- direction: "upstream" | "downstream" | "both" (default: "upstream")
+- depth: integer (default: 3, max: 10)
+```
+
+### 4. **get_immediate_lineage**
+Recupera lineage immediato (1 livello).
+```
+Parametri:
+- asset_id: string
+- direction: "upstream" | "downstream" | "both"
+```
+
+### 5. **analyze_change_impact**
+Analizza impatto di una modifica con AI.
+```
+Parametri:
+- asset_id: string
+- change_type: string (es: "column_drop", "data_type_change")
+- change_description: string
+- max_depth: integer (default: 5)
+```
+
+### 6. **generate_change_checklist**
+Genera checklist operativa per implementare una modifica.
+```
+Parametri:
+- asset_id: string
+- change_type: string
+- change_description: string
+```
+
+### 7. **enhance_asset_documentation**
+Arricchisce documentazione asset con AI.
+```
+Parametri:
+- asset_id: string
+- include_lineage_context: boolean (default: true)
+- business_domain: string (opzionale)
+```
+
+### 8. **switch_llm_provider**
+Cambia provider LLM a runtime.
+```
+Parametri:
+- provider: "tinyllama" | "claude" | "gemma3"
+```
+
+### 9. **get_llm_status**
+Mostra stato corrente sistema LLM.
+
+### 10. **get_system_statistics**
+Statistiche complete: API calls, cache hits, errori, etc.
+
+---
+
+## 💡 Esempi d'Uso
+
+### Ricerca Asset
 
 **Tu chiedi a Claude:**
-> Cerca tutte le tabelle che contengono CLIENTE nel nome nella risorsa DataPlatform
+> Cerca le tabelle che contengono GARANZIE nel nome in DataPlatform
 
-**Claude usa il tool:**
+**Claude usa:**
 ```
 search_assets(
   resource_name="DataPlatform",
-  name_filter="CLIENTE",
+  name_filter="GARANZIE",
   asset_type="Table"
 )
 ```
 
 **Risposta:**
 ```
-Trovate 12 tabelle:
-1. TB_CLIENTI_ANAGRAFICI
-2. DIM_CLIENTE
-3. FACT_CLIENTI_VENDITE
+Trovati 12 asset:
+1. IFR_WK_GARANZIE_SOFFERENZE_DT_AP
+2. DIM_GARANZIE_STATALI
+3. FACT_GARANZIE_MENSILE
 ...
 ```
 
-### Esempio 2: Analisi Impatto
+---
+
+### Lineage Upstream
 
 **Tu chiedi:**
-> Se elimino la colonna EMAIL dalla tabella TB_CLIENTI, cosa succede?
+> Costruisci il lineage upstream di IFR_WK_GARANZIE_SOFFERENZE_DT_AP con profondità 2
+
+**Claude usa:**
+```
+get_lineage_tree(
+  asset_id="DataPlatform://ORAC51/DWHEVO/IFR_WK_GARANZIE_SOFFERENZE_DT_AP",
+  direction="upstream",
+  depth=2
+)
+```
+
+**Risposta:**
+```
+Albero Lineage:
+
+[001] IFR_WK_GARANZIE_SOFFERENZE_DT_AP (Table)
+  [001001] STG_GARANZIE_DT (Table)
+    [001001001] SRC_GARANZIE_RAW (Table)
+  [001002] DIM_CLIENTE (Table)
+    [001002001] STG_ANAGRAFICA (Table)
+
+Statistiche:
+- Nodi totali: 5
+- Profondità: 3
+- Tempo: 1.2s
+```
+
+---
+
+### Analisi Impatto
+
+**Tu chiedi:**
+> Se elimino la colonna IMPORTO_GARANTITO da IFR_WK_GARANZIE_SOFFERENZE_DT_AP, cosa succede?
 
 **Claude usa:**
 ```
 analyze_change_impact(
-  asset_id="DataPlatform://ORAC51/SCHEMA/TB_CLIENTI",
+  asset_id="DataPlatform://ORAC51/DWHEVO/IFR_WK_GARANZIE_SOFFERENZE_DT_AP",
   change_type="column_drop",
-  change_description="Eliminazione colonna EMAIL"
+  change_description="Eliminazione colonna IMPORTO_GARANTITO"
 )
 ```
 
-**Risposta:**
+**Risposta (generata da Gemma3):**
 ```
 LIVELLO RISCHIO: HIGH
 
-Asset Impattati: 8 downstream
+Asset Downstream Impattati: 8
 
 Impatto Business:
-La colonna EMAIL è utilizzata in 3 report critici...
+La colonna IMPORTO_GARANTITO è utilizzata in report regolatori
+e dashboard executive. L'eliminazione causerebbe failure di 3 job
+critici di reporting mensile.
 
 Raccomandazioni:
-1. Verificare tutti i report che usano EMAIL
-2. Creare colonna di migrazione temporanea
-3. Aggiornare le query applicative
-...
+1. Verificare tutte le query SQL che referenziano la colonna
+2. Aggiornare viste materializzate
+3. Comunicare a team BI e Compliance
+4. Preparare periodo di transizione con colonna deprecata
+5. Implementare validazione su nuova struttura
+
+Strategia Testing:
+- Unit test su procedure stored
+- Integration test job ETL
+- Smoke test report executive
+- Validazione dati pre/post migrazione
 ```
 
-### Esempio 3: Documentazione
+---
+
+### Checklist Operativa
 
 **Tu chiedi:**
-> Arricchisci la documentazione della tabella VENDITE
+> Genera una checklist per aggiungere la colonna DATA_SCADENZA
 
 **Claude usa:**
 ```
-enhance_asset_documentation(
-  asset_id="DataPlatform://ORAC51/SCHEMA/VENDITE",
-  include_lineage_context=true,
-  business_domain="Sales"
+generate_change_checklist(
+  asset_id="DataPlatform://ORAC51/DWHEVO/IFR_WK_GARANZIE_SOFFERENZE_DT_AP",
+  change_type="schema_change",
+  change_description="Aggiunta nuova colonna DATA_SCADENZA"
 )
 ```
 
 **Risposta:**
 ```
-Descrizione Arricchita:
-La tabella VENDITE contiene lo storico transazionale di tutte 
-le vendite aziendali. Alimenta i report executive e i dashboard 
-commerciali. È il cuore del sistema di reportistica...
+CHECKLIST OPERATIVA
 
-Tag Suggeriti:
-sales, transactional, daily-load, critical, gdpr
+GOVERNANCE E APPROVAZIONI:
+  [ ] 1. Sottometti change request formale
+  [ ] 2. Ottieni approvazione data owner
+  [ ] 3. Documenta risk assessment
 
-Regole Qualità:
-1. Verificare che importo > 0
-2. Data vendita <= oggi
-...
+PREPARAZIONE PRE-MODIFICA:
+  [ ] 1. Backup completo tabella e dipendenze
+  [ ] 2. Verifica ambiente test disponibile
+  [ ] 3. Prepara script DDL e rollback
+
+ESECUZIONE:
+  [ ] 1. Deploy in DEV e test unitari
+  [ ] 2. Deploy in TEST e integration test
+  [ ] 3. Deploy in PROD con finestra manutenzione
+
+VALIDAZIONE:
+  [ ] 1. Verifica schema aggiornato
+  [ ] 2. Test job ETL downstream
+  [ ] 3. Controllo data quality
+
+MONITORING POST-IMPLEMENTAZIONE:
+  [ ] 1. Monitora job per 48h
+  [ ] 2. Verifica assenza alert
+  [ ] 3. Report post-implementazione
 ```
 
-## Troubleshooting - Problemi Comuni
+---
 
-### Il server non si avvia
+## 🎛️ Provider LLM
 
-**Sintomo:** Claude Desktop non vede il tool
-
-**Soluzione:**
-1. Verifica che i path nel `claude_desktop_config.json` siano corretti
-2. Controlla il log: `%APPDATA%\Claude\logs\mcp-server-edc-lineage.log`
-3. Prova ad avviare manualmente: `python -m src.mcp.server`
-
-### Errore "EDC Connection Failed"
-
-**Sintomo:** "Errore connessione EDC"
-
-**Soluzione:**
-1. Verifica che `EDC_BASE_URL` nel `.env` sia corretto
-2. Verifica username e password
-3. Testa con: `curl -I "https://tuo-edc-url/access"`
-4. Controlla firewall/VPN
-
-### LLM non funziona
-
-**Sintomo:** "Error calling Claude/TinyLlama"
-
-**Soluzione per Claude:**
-1. Verifica `CLAUDE_API_KEY` nel `.env`
-2. Controlla che la chiave sia valida
-3. Verifica credito API residuo
-
-**Soluzione per TinyLlama:**
-1. Avvia Ollama: `ollama serve`
-2. Verifica modello: `ollama list`
-3. Scarica se manca: `ollama pull tinyllama`
-
-### Ricerche lente
-
-**Sintomo:** Le query impiegano molto tempo
-
-**Soluzione:**
-1. Riduci `max_results` nelle ricerche
-2. Riduci `max_depth` negli alberi di lineage
-3. Abilita cache (già attiva di default)
-4. Aumenta `EDC_PAGE_SIZE` nel `.env`
-
-### Errori SSL/Certificati
-
-**Sintomo:** "SSL Certificate Verification Failed"
-
-**Soluzione:**
-1. Nel codice è già disabilitata la verifica SSL (`ssl=False`)
-2. Se persiste, controlla proxy aziendali
-3. Importa certificati custom se necessario
-
-## Statistiche e Monitoring
-
-### Vedere le Statistiche
-
-**In Claude Desktop:**
-> get_system_statistics
-
-**Risposta:**
+### Gemma3 4B (Default) - Bilanciato
+```ini
+DEFAULT_LLM_PROVIDER=gemma3
+OLLAMA_BASE_URL=http://localhost:11434
+GEMMA3_MODEL=gemma3:4b
 ```
-Statistiche Sistema:
-LLM Provider: claude
+
+**Pro:**
+- Ottimo rapporto qualità/velocità
+- Locale (privacy)
+- Gratis
+- Analisi tecniche molto buone
+
+**Contro:**
+- Richiede Ollama installato
+- RAM: ~8GB
+
+**Setup:**
+```bash
+ollama pull gemma3:4b
+ollama serve
+```
+
+---
+
+### TinyLlama - Veloce
+```ini
+DEFAULT_LLM_PROVIDER=tinyllama
+TINYLLAMA_MODEL=tinyllama
+```
+
+**Pro:**
+- Molto veloce
+- Leggero (RAM: ~2GB)
+- Locale e gratis
+
+**Contro:**
+- Meno preciso di Gemma3/Claude
+- Analisi più semplici
+
+**Uso:** Sviluppo, test rapidi, high-volume processing
+
+---
+
+### Claude Sonnet 4 - Potente
+```ini
+DEFAULT_LLM_PROVIDER=claude
+CLAUDE_API_KEY=sk-ant-api03-xxxxx
+CLAUDE_MODEL=claude-sonnet-4-20250514
+```
+
+**Pro:**
+- Analisi molto dettagliate
+- Eccellente per change impact
+- Migliore comprensione contesto
+
+**Contro:**
+- Richiede API key
+- Costo per token (~$3-15 per 1M token)
+- Richiede connessione internet
+
+**Uso:** Analisi critiche, produzione, demo executive
+
+---
+
+### Switch Runtime
+
+Puoi cambiare provider durante la conversazione:
+
+> Passa a Claude per questa analisi
+```
+switch_llm_provider(provider="claude")
+```
+
+---
+
+## 🧪 Testing Interattivo
+
+### Jupyter Notebook
+```bash
+# Installa kernel
+pip install ipykernel
+python -m ipykernel install --user --name=lineageai --display-name="LineageAI"
+
+# Avvia Jupyter
+jupyter notebook notebooks/edc_testing_notebook.ipynb
+```
+
+Il notebook include:
+- Setup automatico imports
+- Funzioni helper per test
+- Esempi pre-compilati
+- Visualizzazione alberi lineage
+- Switch LLM interattivo
+
+---
+
+## 📊 Statistiche e Monitoring
+
+### In Claude Desktop
+
+> Mostrami le statistiche del sistema
+```
+get_system_statistics()
+```
+
+**Output:**
+```
+Statistiche Sistema EDC-MCP-LLM:
+
+LLM Provider: gemma3
 
 EDC:
 - Total API calls: 47
@@ -535,202 +505,213 @@ Configurazione:
 - Request timeout: 30s
 ```
 
-### Log Files
-
-I log sono scritti su `stderr` e vengono catturati da Claude Desktop:
+### Log MCP Server
 
 **Windows:**
-`%APPDATA%\Claude\logs\mcp-server-edc-lineage.log`
+```
+%APPDATA%\Claude\logs\mcp-server-edc-lineage.log
+```
 
-**Cosa cercare nei log:**
+**Contenuto esempio:**
 ```
 [MCP] >> handle_call_tool('search_assets') chiamato
 [MCP] >> Arguments: {'resource_name': 'DataPlatform', ...}
 [MCP] >> search_assets completed: 15 results
 ```
 
-## Estensioni Possibili
+---
 
-### Aggiungere un Nuovo Tool
+## 🔧 Troubleshooting
 
-1. **Definisci il tool in `_register_tools()`:**
-```python
-Tool(
-    name="il_mio_tool",
-    description="Cosa fa",
-    inputSchema={...}
-)
-```
+### Server MCP non visibile in Claude Desktop
 
-2. **Crea l'handler:**
-```python
-async def _handle_il_mio_tool(self, param1: str) -> List[TextContent]:
-    # La tua logica
-    result = "La mia risposta"
-    return [TextContent(type="text", text=result)]
-```
+**Sintomi:** Icona 🔨 non appare o server non in lista
 
-3. **Aggiungi il routing in `handle_call_tool()`:**
-```python
-elif name == "il_mio_tool":
-    return await self._handle_il_mio_tool(**arguments)
-```
-
-### Aggiungere un Nuovo Provider LLM
-
-1. **Crea `src/llm/nuovo_provider.py`:**
-```python
-from .base import BaseLLMClient
-
-class NuovoProviderClient(BaseLLMClient):
-    async def enhance_description(self, ...):
-        # Implementazione
-```
-
-2. **Aggiungi in `factory.py`:**
-```python
-elif config.provider == LLMProvider.NUOVO:
-    return NuovoProviderClient(config)
-```
-
-3. **Aggiorna enum in `settings.py`:**
-```python
-class LLMProvider(str, Enum):
-    TINYLLAMA = "tinyllama"
-    CLAUDE = "claude"
-    NUOVO = "nuovo"
-```
-
-## Architettura - Visione d'Insieme
-
-```
-Claude Desktop (UI)
-    |
-    | JSON-RPC via stdio
-    v
-MCP Server (server.py)
-    |
-    |-- Tool Handlers
-    |   |-- _handle_search_assets()
-    |   |-- _handle_get_asset_details()
-    |   |-- _handle_analyze_change_impact()
-    |   `-- ...
-    |
-    |-- Lineage Builder (lineage.py)
-    |   |-- build_tree()
-    |   |-- get_immediate_lineage()
-    |   `-- get_asset_metadata()
-    |
-    |-- EDC Client (client.py)
-    |   |-- bulk_search_assets()
-    |   |-- get_asset_details()
-    |   `-- search_assets()
-    |
-    `-- LLM Client (factory.py)
-        |-- TinyLlamaClient (tinyllama.py)
-        `-- ClaudeClient (claude.py)
-            |-- enhance_description()
-            |-- analyze_lineage_complexity()
-            |-- analyze_change_impact()
-            `-- generate_change_checklist()
-```
-
-## Performance e Limiti
-
-### Limiti Configurabili
-
-```env
-# Nel file .env
-EDC_MAX_TREE_DEPTH=100        # Profondità massima albero
-EDC_MAX_TOTAL_NODES=10000     # Numero massimo nodi
-EDC_REQUEST_TIMEOUT=30        # Timeout chiamate (secondi)
-EDC_PAGE_SIZE=20              # Risultati per pagina
-```
-
-### Best Practices
-
-1. **Per ricerche ampie:** Usa filtri stretti (name_filter, asset_type)
-2. **Per lineage profondi:** Inizia con depth=2-3, poi aumenta se serve
-3. **Per performance:** Abilita cache (già attivo di default)
-4. **Per costi API:** Usa TinyLlama per sviluppo, Claude per produzione
-
-## Sicurezza
-
-### Credenziali
-
-- **MAI** committare il file `.env` su Git
-- Usa `.env.example` come template
-- In produzione, usa secret manager (Azure KeyVault, AWS Secrets, etc.)
-
-### Rete
-
-- Il server MCP gira in locale
-- Claude Desktop si connette via stdio (non rete)
-- Solo EDC e LLM API sono chiamate esterne
-
-### Dati Sensibili
-
-- I dati EDC non vengono salvati permanentemente
-- La cache è solo in memoria (RAM)
-- I log non contengono dati sensibili (solo metadati)
-
-## FAQ - Domande Frequenti
-
-**Q: Posso usare questo in produzione?**
-A: Sì, ma testa bene prima. È consigliato per analisi interattive, non per processi batch critici.
-
-**Q: Quanto costa Claude API?**
-A: Dipende dall'uso. Circa $3-15 per 1M token. TinyLlama è gratis ma locale.
-
-**Q: Serve installare qualcosa sul server EDC?**
-A: No, usa solo le API esistenti.
-
-**Q: Funziona con EDC Cloud (IDMC)?**
-A: In teoria sì, ma servono piccole modifiche agli endpoint API.
-
-**Q: Posso aggiungere altri cataloghi (Collibra, Atlan)?**
-A: Sì, basta creare un nuovo client che implementi le stesse interfacce di `EDCClient`.
-
-**Q: I dati vengono inviati a Claude/OpenAI?**
-A: Solo se usi Claude API. Con TinyLlama tutto è locale.
-
-**Q: Quanto è veloce?**
-A: Dipende. Ricerche semplici: 1-2 sec. Alberi profondi: 10-30 sec. Claude API: 2-5 sec.
-
-## Supporto e Contributi
-
-### Problemi
-
-Se incontri problemi:
-1. Controlla i log
-2. Verifica la configurazione
-3. Prova i test: `python test_mcp_integration.py`
-4. Apri una issue su GitHub (se pubblico)
-
-### Contribuire
-
-Per aggiungere funzionalità:
-1. Fork del progetto
-2. Crea branch: `git checkout -b feature/nuova-funzione`
-3. Implementa e testa
-4. Pull request con descrizione dettagliata
-
-## Crediti
-
-- **Autore:** Lorenzo - Principal Data Architect @ NTT Data Italia
-- **Specializzazione:** Data Governance, Informatica EDC
-- **Esperienza:** 20+ anni enterprise data management
-
-## Licenza
-
-MIT License - Progetto formativo per esplorare l'integrazione di tecnologie moderne (MCP, LLM) con sistemi enterprise esistenti (EDC).
+**Soluzioni:**
+1. Verifica path nel `claude_desktop_config.json` (usa path assoluti)
+2. Controlla log: `%APPDATA%\Claude\logs\mcp-server-edc-lineage.log`
+3. Test manuale: `python -m src.mcp.server`
+4. Riavvia Claude Desktop completamente
 
 ---
 
-**Ultimo Aggiornamento:** Gennaio 2025
+### EDC Connection Failed
 
-**Versione:** 0.1.0
+**Sintomi:** Errori "Connection refused" o "Timeout"
 
-**Python:** 3.9+
+**Soluzioni:**
+1. Verifica VPN attiva
+2. Test connessione: `curl -I https://edc.collaudo.servizi.allitude.it:9086/access`
+3. Controlla firewall/proxy
+4. Verifica credenziali in `.env`
 
+---
+
+### LLM Provider Error
+
+**Per Ollama (TinyLlama/Gemma3):**
+```bash
+# Verifica Ollama running
+curl http://localhost:11434/api/tags
+
+# Avvia se necessario
+ollama serve
+
+# Verifica modello installato
+ollama list
+
+# Installa se mancante
+ollama pull gemma3:4b
+```
+
+**Per Claude API:**
+1. Verifica API key valida
+2. Controlla credito residuo su console.anthropic.com
+3. Test manuale:
+```bash
+curl https://api.anthropic.com/v1/messages \
+  -H "x-api-key: $CLAUDE_API_KEY" \
+  -H "anthropic-version: 2023-06-01"
+```
+
+---
+
+### Ricerche Lente
+
+**Sintomi:** Timeout o response time > 10s
+
+**Ottimizzazioni:**
+1. Riduci `max_results` nelle ricerche
+2. Riduci `depth` nei lineage tree
+3. La cache è già attiva di default
+4. Aumenta `EDC_REQUEST_TIMEOUT` nel `.env` se necessario
+
+---
+
+### SSL Certificate Errors
+
+**Sintomi:** `SSL: CERTIFICATE_VERIFY_FAILED`
+
+**Soluzione:** Già disabilitata la verifica SSL nel codice per certificati self-signed:
+```python
+connector = aiohttp.TCPConnector(ssl=False)
+```
+
+Se persiste, verifica proxy aziendali o certificati custom.
+
+---
+
+## 📁 Struttura File
+```
+lineageAI/
+├── .env                          # Configurazione (NON commitare!)
+├── .env.example                  # Template configurazione
+├── requirements.txt              # Dipendenze Python
+├── run_server.py                 # Avvio MCP server (standalone test)
+├── README.md                     # Questa documentazione
+│
+├── notebooks/
+│   └── edc_testing_notebook.ipynb  # Test interattivi Jupyter
+│
+├── src/
+│   ├── config/
+│   │   └── settings.py           # Gestione configurazione centralizzata
+│   │
+│   ├── edc/                      # Integrazione EDC
+│   │   ├── client.py             # Client HTTP per API EDC
+│   │   ├── lineage.py            # Builder alberi lineage
+│   │   ├── models.py             # Data models
+│   │   └── class_types.py        # Mappatura tipi asset
+│   │
+│   ├── llm/                      # Integrazione LLM
+│   │   ├── base.py               # Interfaccia astratta
+│   │   ├── factory.py            # Factory pattern
+│   │   ├── tinyllama.py          # Client Ollama
+│   │   ├── gemma3.py             # Client Gemma3
+│   │   └── claude.py             # Client Anthropic
+│   │
+│   └── mcp/                      # MCP Server
+│       └── server.py             # Server principale con 10 tools
+│
+└── venv/                         # Virtual environment (gitignore)
+```
+
+---
+
+## 🔐 Sicurezza
+
+### Credenziali
+- **MAI** commitare `.env` su Git
+- Usa `.env.example` come template
+- In produzione: secret manager (Azure KeyVault, AWS Secrets)
+
+### Rete
+- Server MCP gira solo locale (stdio)
+- Solo EDC e LLM API sono chiamate esterne
+- Nessuna porta TCP aperta
+
+### Dati
+- Cache solo in memoria (no persistenza)
+- Log non contengono dati sensibili
+- Lineage tree non persistiti
+
+---
+
+## 🎯 Best Practices
+
+### Performance
+1. **Ricerche ampie:** Usa filtri stretti (name_filter + asset_type)
+2. **Lineage profondi:** Inizia con depth=2, poi aumenta se serve
+3. **Cache:** Già attivo - riusa gli stessi asset per sfruttarlo
+4. **Batch:** Per analisi massive, considera scripting diretto
+
+### Costi LLM
+1. **Sviluppo:** TinyLlama (gratis)
+2. **Normale:** Gemma3 (gratis, ottimo)
+3. **Critiche/Demo:** Claude (pagamento)
+
+### Data Governance
+1. Documenta le modifiche nel catalogo EDC
+2. Usa checklist generate per compliance
+3. Archivia analisi impatto per audit trail
+4. Sfrutta enhancement AI per migliorare metadati
+
+---
+
+## 📚 Riferimenti
+
+### Documentazione Prodotti
+- [Informatica EDC](https://docs.informatica.com/data-catalog.html)
+- [Anthropic Claude](https://docs.anthropic.com/)
+- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [Ollama](https://ollama.ai/)
+
+### API EDC
+- Base URL: `https://edc.servizi.allitude.it:9086/access`
+- Versione API: 2
+- Endpoints principali:
+  - `/1/catalog/data/bulk` - Ricerca bulk
+  - `/2/catalog/data/objects` - Dettagli asset
+
+---
+
+## 👤 Autore
+
+**Lorenzo** - Principal Data Architect @ NTT Data Italia
+
+- 20+ anni esperienza enterprise data management
+- Specializzazione: Data Governance, Informatica EDC
+- Progetti: Axon, IDMC, PowerCenter, Data Quality
+
+---
+
+## 📄 Licenza
+
+MIT License - Progetto formativo per esplorare integrazione tecnologie moderne (MCP, LLM) con sistemi enterprise esistenti (EDC).
+
+---
+
+**Ultimo Aggiornamento:** Novembre 2024  
+**Versione:** 1.0.0  
+**Python:** 3.9+  
 **Piattaforme:** Windows, Linux, macOS
