@@ -1,2 +1,2 @@
 # ai-training
-All my test about AI.
+All my tests and trainings about AI.
