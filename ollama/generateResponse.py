@@ -10,7 +10,7 @@ def ask_ollama(prompt, model="tinyllama", ip="192.168.1.17"):
         model (str): The model to use (default: tinyllama)
         ip (str): IP address of the Ollama server
     """
-    url = f"http://192.168.1.17:11434/api/generate"
+    url = f"http://127.0.0.1:11434/api/generate"
     
     headers = {
         "Content-Type": "application/json"

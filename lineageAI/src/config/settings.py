@@ -72,13 +72,14 @@ class Settings(BaseSettings):
     claude_max_tokens: int = Field(default=4000)
     claude_temperature: float = Field(default=0.1)
     
-    # TinyLlama/Ollama
-    ollama_base_url: str = Field(default="http://localhost:11434")
+    # TinyLlama (Raspberry Pi)
+    tinyllama_base_url: str = Field(default="http://192.168.1.17:11434")
     tinyllama_model: str = Field(default="tinyllama")
     tinyllama_max_tokens: int = Field(default=2000)
     tinyllama_temperature: float = Field(default=0.1)
     
-    # Gemma3/Ollama
+    # Gemma3 (PC Locale)
+    gemma3_base_url: str = Field(default="http://localhost:11434")
     gemma3_model: str = Field(default="gemma3:4b")
     gemma3_max_tokens: int = Field(default=4000)
     gemma3_temperature: float = Field(default=0.1)
@@ -160,14 +161,27 @@ class Settings(BaseSettings):
         """Verifica se Claude e configurato"""
         return self.claude_api_key is not None and len(self.claude_api_key) > 10
     
-    def is_ollama_available(self) -> bool:
-        """Verifica se Ollama e disponibile"""
+    def is_tinyllama_available(self) -> bool:
+        """Verifica se TinyLlama (Raspberry) e disponibile"""
         try:
             import requests
-            response = requests.get(f"{self.ollama_base_url}/api/tags", timeout=5)
+            response = requests.get(f"{self.tinyllama_base_url}/api/tags", timeout=5)
             return response.status_code == 200
         except:
             return False
+    
+    def is_gemma3_available(self) -> bool:
+        """Verifica se Gemma3 (locale) e disponibile"""
+        try:
+            import requests
+            response = requests.get(f"{self.gemma3_base_url}/api/tags", timeout=5)
+            return response.status_code == 200
+        except:
+            return False
+    
+    def is_ollama_available(self) -> bool:
+        """Verifica se almeno un Ollama e disponibile (compatibilita)"""
+        return self.is_tinyllama_available() or self.is_gemma3_available()
 
 # Singleton settings instance
 try:

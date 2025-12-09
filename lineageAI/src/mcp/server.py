@@ -25,8 +25,8 @@ from ..llm.factory import LLMFactory, LLMConfig
 
 class EDCMCPServer:
     """
-    Server MCP che espone funzionalità EDC arricchite con LLM.
-    Mantiene la compatibilità con la logica TreeBuilder esistente.
+    Server MCP che espone funzionalitÃ  EDC arricchite con LLM.
+    Mantiene la compatibilitÃ  con la logica TreeBuilder esistente.
     """
     
     def __init__(self):
@@ -72,7 +72,7 @@ class EDCMCPServer:
                 llm_config = LLMConfig(
                     provider=LLMProvider.TINYLLAMA,
                     model_name=settings.tinyllama_model,
-                    base_url=settings.ollama_base_url,
+                    base_url=settings.tinyllama_base_url,
                     max_tokens=settings.tinyllama_max_tokens,
                     temperature=settings.tinyllama_temperature
                 )
@@ -83,7 +83,7 @@ class EDCMCPServer:
                 llm_config = LLMConfig(
                     provider=LLMProvider.GEMMA3,
                     model_name=settings.gemma3_model,
-                    base_url=settings.ollama_base_url,
+                    base_url=settings.gemma3_base_url,
                     max_tokens=settings.gemma3_max_tokens,
                     temperature=settings.gemma3_temperature
                 )
@@ -189,7 +189,7 @@ class EDCMCPServer:
                                 },
                                 "depth": {
                                     "type": "integer",
-                                    "description": "Profondità massima",
+                                    "description": "ProfonditÃ  massima",
                                     "default": 3
                                 }
                             },
@@ -223,7 +223,7 @@ class EDCMCPServer:
                             "properties": {
                                 "asset_id": {
                                     "type": "string",
-                                    "description": "Asset che subirà la modifica"
+                                    "description": "Asset che subirÃ  la modifica"
                                 },
                                 "change_type": {
                                     "type": "string",
@@ -235,7 +235,7 @@ class EDCMCPServer:
                                 },
                                 "max_depth": {
                                     "type": "integer",
-                                    "description": "Profondità analisi",
+                                    "description": "ProfonditÃ  analisi",
                                     "default": 5
                                 }
                             },
@@ -797,11 +797,17 @@ class EDCMCPServer:
             status_text = "Stato Sistema LLM:\n\n"
             status_text += f"Provider Attivo: {self.current_llm_provider.value}\n\n"
             
-            ollama_available = settings.is_ollama_available()
-            status_text += f"TinyLlama (Ollama): {'Disponibile' if ollama_available else 'Non disponibile'}\n"
-            if ollama_available:
-                status_text += f"  - URL: {settings.ollama_base_url}\n"
+            tinyllama_available = settings.is_tinyllama_available()
+            status_text += f"TinyLlama (Raspberry): {'Disponibile' if tinyllama_available else 'Non disponibile'}\n"
+            if tinyllama_available:
+                status_text += f"  - URL: {settings.tinyllama_base_url}\n"
                 status_text += f"  - Modello: {settings.tinyllama_model}\n"
+            
+            gemma3_available = settings.is_gemma3_available()
+            status_text += f"\nGemma3 (Locale): {'Disponibile' if gemma3_available else 'Non disponibile'}\n"
+            if gemma3_available:
+                status_text += f"  - URL: {settings.gemma3_base_url}\n"
+                status_text += f"  - Modello: {settings.gemma3_model}\n"
             
             claude_available = settings.is_claude_available()
             status_text += f"\nClaude API: {'Disponibile' if claude_available else 'Non disponibile'}\n"
@@ -889,7 +895,7 @@ async def main():
         server = EDCMCPServer()
         print("[INIT] [OK] Server creato con successo", file=sys.stderr)
         
-        # Verifica disponibilità LLM (non bloccante)
+        # Verifica disponibilitÃ  LLM (non bloccante)
         print("[CHECK] Verifica disponibilita provider LLM...", file=sys.stderr)
         if settings.default_llm_provider == LLMProvider.CLAUDE:
             if not settings.is_claude_available():

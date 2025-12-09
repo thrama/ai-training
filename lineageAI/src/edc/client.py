@@ -112,7 +112,7 @@ class EDCClient:
         if not facts:
             return ""
         
-        # Priorità delle descrizioni
+        # PrioritÃ  delle descrizioni
         governed_axon_description = ""
         business_description = ""
         core_description = ""
@@ -131,7 +131,7 @@ class EDCClient:
             elif attribute_id == "technicalDescription":
                 technical_description = value
         
-        # Ritorna la prima disponibile in ordine di priorità
+        # Ritorna la prima disponibile in ordine di prioritÃ 
         return (
             governed_axon_description or 
             business_description or 
@@ -325,7 +325,7 @@ class EDCClient:
         self._stats['total_requests'] += 1
         
         # Costruisci parametri query
-        params = dict(self.static_params)
+        params = list(self.static_params)
         params.append(('q', f'id:{asset_id}'))
         
         # Log per debug
@@ -433,7 +433,7 @@ class EDCClient:
         """
         await self._ensure_session()
         
-        params = dict(self.static_params)
+        params = list(self.static_params)
         params.append(('q', query))
         
         if filters:
@@ -486,7 +486,7 @@ class EDCClient:
         
         Args:
             asset_id: ID dell'asset
-            depth: Profondità del lineage (per ora solo 1)
+            depth: ProfonditÃ  del lineage (per ora solo 1)
             
         Returns:
             Lista di asset upstream
@@ -504,7 +504,7 @@ class EDCClient:
         
         Args:
             asset_id: ID dell'asset
-            depth: Profondità del lineage (per ora solo 1)
+            depth: ProfonditÃ  del lineage (per ora solo 1)
             
         Returns:
             Lista di asset downstream

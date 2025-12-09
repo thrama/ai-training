@@ -71,29 +71,31 @@ pip install -e .
 
 ### 📚 Corsi Anthropic
 
-#### Introduction to MCP
-Materiale corso introduttivo Model Context Protocol  
-**Focus**: CLI project, basics MCP architecture
+#### Introduction to Model Context Protocol
+Materiale corso introduttivo Model Context Protocol
+**Link**: https://anthropic.skilljar.com/introduction-to-model-context-protocol  
 
-#### MCP Advanced Topics
+#### Model Context Protocol: Advanced Topics
 Approfondimenti su:
 - Notifications
 - Sampling
 - HTTP transport layer
+**Link**: https://anthropic.skilljar.com/model-context-protocol-advanced-topics
 
 ---
 
 ### 🎓 Altri Corsi
 
-#### Building AI
-Corso "Building AI" - Python fundamentals per AI  
-**Struttura**: 4 capitoli progressivi con esempi pratici
+#### Elements of AI
+Corsi "Elements of AI" e il successivo "Building AI"
+**Link**: https://course.elementsofai.com e https://buildingai.elementsofai.com
 
 #### Datamaster / AI Agentic Applications Masterclass
 Masterclass su applicazioni agentiche:
 - Modulo 1: Large Language Models foundations
 - Modulo 2: LangChain framework
 - Include notebook Jupyter con esempi pratici
+**Link**: https://datamasters.it/catalogo/corsi/rag-large-language-models-langchain/
 
 ---
 
