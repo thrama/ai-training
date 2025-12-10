@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # AI Learning & Experimentation Lab
 
 Repository personale per corsi, progetti sperimentali e POC nell'ambito AI, LLM e agentic applications.
@@ -258,3 +259,7 @@ python -m src.mcp.server
 
 **Ultimo aggiornamento**: Novembre 2025 
 **Ambiente**: Windows, macOS, pyenv 3.11+
+=======
+# ai-training
+All my tests and trainings about AI.
+>>>>>>> cbdedae2867568b67621cd51c2ca3941a4056eaa
