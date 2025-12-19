@@ -2,16 +2,15 @@
 Factory per la creazione di client LLM.
 Integra il sistema di astrazione LLM multi-provider.
 """
+
 from dataclasses import dataclass
 from typing import Optional
 
+from ..config.settings import LLMProvider
 from .base import BaseLLMClient
-from .tinyllama import TinyLlamaClient
 from .claude import ClaudeClient
 from .gemma3 import Gemma3Client
-
-# IMPORTA da settings invece di ridefinirlo
-from ..config.settings import LLMProvider
+from .tinyllama import TinyLlamaClient
 
 
 @dataclass
@@ -26,18 +25,18 @@ class LLMConfig:
 
 class LLMFactory:
     """Factory per creare istanze LLM basate sulla configurazione."""
-    
+
     @staticmethod
     def create_llm_client(config: LLMConfig) -> BaseLLMClient:
         """
         Crea client LLM basato sulla configurazione.
-        
+
         Args:
             config: Configurazione LLM
-            
+
         Returns:
             BaseLLMClient: Client LLM configurato
-            
+
         Raises:
             ValueError: Se il provider non e supportato
         """
@@ -49,20 +48,20 @@ class LLMFactory:
             return Gemma3Client(config)
         else:
             raise ValueError(f"Provider LLM non supportato: {config.provider}")
-    
+
     @staticmethod
     def get_available_providers() -> list[str]:
         """Restituisce la lista dei provider disponibili."""
         return [provider.value for provider in LLMProvider]
-    
+
     @staticmethod
     def validate_config(config: LLMConfig) -> bool:
         """
         Valida una configurazione LLM.
-        
+
         Args:
             config: Configurazione da validare
-            
+
         Returns:
             bool: True se valida, False altrimenti
         """
@@ -72,5 +71,5 @@ class LLMFactory:
             return config.base_url is not None
         elif config.provider == LLMProvider.GEMMA3:
             return config.base_url is not None
-        
+
         return False
